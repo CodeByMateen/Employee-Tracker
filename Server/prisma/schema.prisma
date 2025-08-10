@@ -1,0 +1,75 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  employeeId   String   @unique @map("employee_id")
+  name         String
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  role         String   @default("employee")
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  
+  attendanceRecords AttendanceRecord[]
+  
+  @@map("users")
+}
+
+model OfficeLocation {
+  id           Int      @id @default(autoincrement())
+  name         String
+  latitude     Decimal  @db.Decimal(10, 8)
+  longitude    Decimal  @db.Decimal(11, 8)
+  radiusMeters Int      @default(100) @map("radius_meters")
+  
+  @@map("office_locations")
+}
+
+model AttendanceRecord {
+  id                    Int      @id @default(autoincrement())
+  userId                Int      @map("user_id")
+  date                  DateTime @db.Date
+  checkInTime           DateTime? @map("check_in_time")
+  checkOutTime          DateTime? @map("check_out_time")
+  checkInLatitude       Decimal? @db.Decimal(10, 8) @map("check_in_latitude")
+  checkInLongitude      Decimal? @db.Decimal(11, 8) @map("check_in_longitude")
+  checkInLocationStatus String   @default("valid") @map("check_in_location_status")
+  totalWorkHours        Decimal? @db.Decimal(4, 2) @map("total_work_hours")
+  status                String   @default("present")
+  createdAt             DateTime @default(now()) @map("created_at")
+  
+  user        User           @relation(fields: [userId], references: [id])
+  breakRecords BreakRecord[]
+  
+  @@unique([userId, date])
+  @@map("attendance_records")
+}
+
+model BreakRecord {
+  id                    Int      @id @default(autoincrement())
+  attendanceRecordId    Int      @map("attendance_record_id")
+  breakType             String   @map("break_type")
+  startTime             DateTime @map("start_time")
+  endTime               DateTime? @map("end_time")
+  durationMinutes       Int?     @map("duration_minutes")
+  createdAt             DateTime @default(now()) @map("created_at")
+  
+  attendanceRecord AttendanceRecord @relation(fields: [attendanceRecordId], references: [id])
+  
+  @@map("break_records")
+}
+
+model SystemConfig {
+  id          Int     @id @default(autoincrement())
+  configKey   String  @unique @map("config_key")
+  configValue String  @map("config_value")
+  
+  @@map("system_config")
+} 
